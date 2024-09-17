@@ -12,8 +12,8 @@ spec:
       cidrBlocks:
       - 10.95.0.0/16
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-    kind: KubeadmControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    kind: TalosControlPlane
     name: capi-quickstart-control-plane
     namespace: default
   infrastructureRef:
@@ -21,6 +21,23 @@ spec:
     kind: KubevirtCluster
     name: capi-quickstart
     namespace: default
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: TalosControlPlane
+metadata:
+  name: capi-quickstart-control-plane
+  namespace: default
+spec:
+  version: v1.30.5
+  replicas: 1
+  infrastructureTemplate:
+    kind: KubevirtMachineTemplate
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    name: capi-quickstart-control-plane
+    namespace: default
+  controlPlaneConfig:
+    controlplane:
+      generateType: controlplane
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
 kind: KubevirtCluster
@@ -63,35 +80,8 @@ spec:
               evictionStrategy: External
               volumes:
               - containerDisk:
-                  image: quay.io/capk/ubuntu-2004-container-disk:v1.26.0
+                  image: docker.io/trevex/talos-kubevirt:v1.7.6
                 name: containervolume
----
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-kind: KubeadmControlPlane
-metadata:
-  name: capi-quickstart-control-plane
-  namespace: default
-spec:
-  kubeadmConfigSpec:
-    clusterConfiguration:
-      networking:
-        dnsDomain: capi-quickstart.default.local
-        podSubnet: 10.243.0.0/16
-        serviceSubnet: 10.95.0.0/16
-    initConfiguration:
-      nodeRegistration:
-        criSocket: /var/run/containerd/containerd.sock
-    joinConfiguration:
-      nodeRegistration:
-        criSocket: /var/run/containerd/containerd.sock
-  machineTemplate:
-    infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
-      kind: KubevirtMachineTemplate
-      name: capi-quickstart-control-plane
-      namespace: default
-  replicas: 1
-  version: v1.26.0
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
 kind: KubevirtMachineTemplate
@@ -124,20 +114,18 @@ spec:
               evictionStrategy: External
               volumes:
               - containerDisk:
-                  image: quay.io/capk/ubuntu-2004-container-disk:v1.26.0
+                  image: docker.io/trevex/talos-kubevirt:v1.7.6
                 name: containervolume
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-kind: KubeadmConfigTemplate
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: TalosConfigTemplate
 metadata:
   name: capi-quickstart-md-0
   namespace: default
 spec:
   template:
     spec:
-      joinConfiguration:
-        nodeRegistration:
-          kubeletExtraArgs: {}
+      generateType: worker
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -153,8 +141,8 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-          kind: KubeadmConfigTemplate
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          kind: TalosConfigTemplate
           name: capi-quickstart-md-0
           namespace: default
       clusterName: capi-quickstart
@@ -163,4 +151,4 @@ spec:
         kind: KubevirtMachineTemplate
         name: capi-quickstart-md-0
         namespace: default
-      version: v1.26.0
+      version: v1.30.5

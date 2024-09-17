@@ -42,6 +42,7 @@ install: check-kubeconfig
     EOF
 
     kubectl wait -n kubevirt kv kubevirt --for=condition=Available --timeout=10m
+    clusterctl init --infrastructure kubevirt --bootstrap talos --control-plane talos
     # clusterctl init --infrastructure kubevirt
 
     # kubectl create -f capi-quickstart.yaml
@@ -57,9 +58,9 @@ generate-capi-quickstart:
     #!/usr/bin/env bash
     set -euxo pipefail
 
-    CAPK_GUEST_K8S_VERSION="v1.26.0"
-    CRI_PATH="/var/run/containerd/containerd.sock"
-    NODE_VM_IMAGE_TEMPLATE="quay.io/capk/ubuntu-2004-container-disk:${CAPK_GUEST_K8S_VERSION}"
+    export CAPK_GUEST_K8S_VERSION="v1.30.5"
+    export CRI_PATH="/var/run/containerd/containerd.sock"
+    export NODE_VM_IMAGE_TEMPLATE="docker.io/trevex/talos-kubevirt:v1.7.6"
 
     clusterctl generate cluster capi-quickstart \
       --infrastructure="kubevirt" \
@@ -68,6 +69,8 @@ generate-capi-quickstart:
       --control-plane-machine-count=1 \
       --worker-machine-count=1 \
       > capi-quickstart.yaml
+
+    echo "Now edit the file by hand to use Talos instead..."
 
 check-kubeconfig:
     kubectl config current-context | grep "kind-{{cluster_name}}"
@@ -79,3 +82,6 @@ build-talos:
     curl -L https://github.com/siderolabs/talos/releases/download/v1.7.6/metal-amd64.raw.xz -o talos.raw.xz
     xz -d talos.raw.xz
     qemu-img convert -O qcow2 talos.raw talos.qcow2
+    docker build -t trevex/talos-kubevirt:v1.7.6 .
+    docker push trevex/talos-kubevirt:v1.7.6
+    rm talos.*

@@ -32,6 +32,7 @@
             kind
             kubevirt
             clusterctl
+            talosctl
           ];
         };
       }
